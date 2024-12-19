@@ -65,7 +65,6 @@ export const authOptions: AuthOptions = {
           include: { accounts: true },
         });
 
-        // If user exists but doesn't have a GitHub/Google account linked, link it
         if (existingUser && !existingUser.accounts.length) {
           await prisma.account.create({
             data: {
@@ -78,10 +77,23 @@ export const authOptions: AuthOptions = {
               scope: account.scope,
             },
           });
-          return true;
         }
       }
       return true;
+    },
+    async redirect({ url, baseUrl }) {
+      console.log("Redirect URL:", url);
+      console.log("Base URL:", baseUrl);
+
+      // Force redirect to dashboard after any successful sign in
+      if (url.includes("/auth/signin")) {
+        return `${baseUrl}/dashboard`;
+      }
+
+      // Default redirect behavior
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     },
   },
 };
