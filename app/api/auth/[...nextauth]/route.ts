@@ -1,13 +1,10 @@
-import NextAuth from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/prisma/db";
 import bcrypt from "bcryptjs";
-import { AuthOptions } from "next-auth";
-
-//const prisma = new PrismaClient()
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -58,6 +55,34 @@ export const authOptions: AuthOptions = {
   },
   pages: {
     signIn: "/auth/signin",
+  },
+  callbacks: {
+    async signIn({ user, account }) {
+      // Allow OAuth providers to link accounts with same email
+      if (account?.provider === "github" || account?.provider === "google") {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+          include: { accounts: true },
+        });
+
+        // If user exists but doesn't have a GitHub/Google account linked, link it
+        if (existingUser && !existingUser.accounts.length) {
+          await prisma.account.create({
+            data: {
+              userId: existingUser.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              access_token: account.access_token,
+              token_type: account.token_type,
+              scope: account.scope,
+            },
+          });
+          return true;
+        }
+      }
+      return true;
+    },
   },
 };
 
