@@ -5,7 +5,7 @@ import { Session } from "next-auth";
 
 type Props = {
   children: React.ReactNode;
-  session: Session | null;
+  session?: Session | null;
 };
 
 export default function SessionProvider({ children, session }: Props) {
