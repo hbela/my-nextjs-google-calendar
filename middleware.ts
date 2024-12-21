@@ -1,19 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { unstable_precompute as precompute } from "@vercel/flags/next";
-import { authFlags } from "./lib/flags";
+import { showGithubOnlyAuth } from "@/lib/flags";
 
 export const config = {
   matcher: ["/auth/signin"],
 };
 
 export async function middleware(request: NextRequest) {
-  const code = await precompute(authFlags);
+  const githubOnly = await showGithubOnlyAuth();
 
-  // Rewrite the request to include the precomputed code
-  const nextUrl = new URL(
-    `/${code}${request.nextUrl.pathname}${request.nextUrl.search}`,
-    request.url
-  );
+  // Determine which version to show based on the feature flag
+  const version = githubOnly
+    ? "/auth/signin/github-only"
+    : "/auth/signin/regular";
 
-  return NextResponse.rewrite(nextUrl, { request });
+  const nextUrl = new URL(version, request.url);
+
+  return NextResponse.rewrite(nextUrl);
 }
