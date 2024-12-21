@@ -1,9 +1,9 @@
-import { authFlags } from "@/lib/flags";
+import { showGithubOnlyAuth } from "@/lib/flags";
 import GitHubSignIn from "./github-only";
 import RegularSignIn from "./regular";
 
 export default async function SignIn() {
-  // const isGithubOnly = await useGithubOnlyAuth();
+  const isGithubOnly = await showGithubOnlyAuth();
 
-  return authFlags ? <GitHubSignIn /> : <RegularSignIn />;
+  return isGithubOnly ? <GitHubSignIn /> : <RegularSignIn />;
 }
