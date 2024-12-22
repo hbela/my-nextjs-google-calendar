@@ -109,21 +109,13 @@ export const authOptions: AuthOptions = {
 
       return true;
     },
-
     async redirect({ url, baseUrl }) {
-      console.log("Redirect URL:", url);
-
-      console.log("Base URL:", baseUrl); // Force redirect to dashboard after any successful sign in
-
-      if (url.includes("/auth/signin")) {
-        return `${baseUrl}/dashboard`;
-      } // Default redirect behavior
-
+      // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-
-      if (new URL(url).origin === baseUrl) return url;
-
-      return baseUrl;
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url;
+      // Default to redirecting to the dashboard
+      return `${baseUrl}/dashboard`;
     },
   },
 };
