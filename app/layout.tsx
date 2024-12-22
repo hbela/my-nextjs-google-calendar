@@ -4,11 +4,6 @@ import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
 import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { unstable_deserialize as deserialize } from "@vercel/flags/next";
-import { authFlags } from "@/lib/flags";
-import { encrypt } from "@vercel/flags";
-import { FlagValues } from "@vercel/flags/react";
-import { Suspense } from "react";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,12 +23,9 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
-  params,
 }: Readonly<{
   children: React.ReactNode;
-  params: { code: string };
 }>) {
-  const values = await deserialize(authFlags, params.code);
   return (
     <html lang="en">
       <body
@@ -48,9 +40,6 @@ export default async function RootLayout({
           >
             <Navbar />
             {children}
-            <Suspense fallback={null}>
-              <FlagValues values={await encrypt(values)} />
-            </Suspense>
           </ThemeProvider>
         </SessionProvider>
       </body>
