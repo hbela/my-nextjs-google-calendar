@@ -5,6 +5,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/prisma/db";
 import bcrypt from "bcryptjs";
+import { Role } from "@prisma/client";
+
+const ADMIN_EMAILS = ["hajzerbela@gmail.com"]; // Add all admin emails here
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -12,14 +15,27 @@ export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
-
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      profile(profile) {
+        console.log("Profile Google: ", profile);
+        return {
+          ...profile,
+          id: profile.sub,
+          role: ADMIN_EMAILS.includes(profile.email) ? Role.ADMIN : Role.USER,
+        };
+      },
     }),
 
     GithubProvider({
       clientId: process.env.GITHUB_ID!,
-
       clientSecret: process.env.GITHUB_SECRET!,
+      profile(profile) {
+        console.log("Profile Github: ", profile);
+        return {
+          ...profile,
+          role: ADMIN_EMAILS.includes(profile.email) ? Role.ADMIN : Role.USER,
+        };
+      },
     }),
 
     CredentialsProvider({
@@ -77,38 +93,35 @@ export const authOptions: AuthOptions = {
 
   callbacks: {
     async signIn({ user, account }) {
-      // Allow OAuth providers to link accounts with same email
-
       if (account?.provider === "github" || account?.provider === "google") {
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email! },
-
-          include: { accounts: true },
         });
 
-        if (existingUser && !existingUser.accounts.length) {
-          await prisma.account.create({
+        if (!existingUser) {
+          // Create new user with appropriate role
+          await prisma.user.create({
             data: {
-              userId: existingUser.id,
-
-              type: account.type,
-
-              provider: account.provider,
-
-              providerAccountId: account.providerAccountId,
-
-              access_token: account.access_token,
-
-              token_type: account.token_type,
-
-              scope: account.scope,
+              email: user.email!,
+              name: user.name,
+              image: user.image,
+              role: ADMIN_EMAILS.includes(user.email!) ? "ADMIN" : "USER",
             },
+          });
+        } else if (
+          ADMIN_EMAILS.includes(user.email!) &&
+          existingUser.role !== "ADMIN"
+        ) {
+          // Update existing user to admin if they should be admin
+          await prisma.user.update({
+            where: { email: user.email! },
+            data: { role: "ADMIN" },
           });
         }
       }
-
       return true;
     },
+
     async redirect({ url, baseUrl }) {
       // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
@@ -116,6 +129,30 @@ export const authOptions: AuthOptions = {
       else if (new URL(url).origin === baseUrl) return url;
       // Default to redirecting to the dashboard
       return `${baseUrl}/dashboard`;
+    },
+
+    async jwt({ token, user }) {
+      if (user) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+        });
+        token.role = dbUser?.role || "USER";
+      } else if (token.email && !token.role) {
+        // Check role on subsequent requests
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email },
+        });
+        token.role = dbUser?.role || "USER";
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session?.user) {
+        session.user.role = token.role as Role;
+      }
+      console.log("Session: ", session);
+      return session;
     },
   },
 };

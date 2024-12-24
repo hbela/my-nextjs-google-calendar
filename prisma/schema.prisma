@@ -41,6 +41,7 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
+  role          Role      @default(USER)
   accounts      Account[]
   sessions      Session[]
 }
@@ -53,3 +54,13 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model FeatureFlag {
+  id    String  @id @default(cuid())
+  name  String
+  value Boolean
+}
+
+enum Role {
+  ADMIN
+  USER
+}

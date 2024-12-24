@@ -28,11 +28,17 @@ export async function POST(req: Request) {
         email,
         name,
         password: hashedPassword,
+        role: "USER",
       },
     });
 
     return NextResponse.json({
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
     });
   } catch {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
