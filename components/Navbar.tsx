@@ -6,10 +6,12 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
+import { Role } from "@prisma/client";
 
 export default function Navbar() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+
   return (
     <nav className="border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -23,12 +25,19 @@ export default function Navbar() {
 
           <div className="flex gap-4">
             {session ? (
-              <Button
-                variant="outline"
-                onClick={() => signOut({ callbackUrl: "/" })}
-              >
-                Sign Out
-              </Button>
+              <div className="flex gap-2">
+                {session.user.role === Role.ADMIN && (
+                  <Button variant="outline" asChild>
+                    <Link href="/admin/flags">Manage Flags</Link>
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                  Sign Out
+                </Button>
+              </div>
             ) : (
               <div className="flex gap-2">
                 <Button variant="outline" asChild>

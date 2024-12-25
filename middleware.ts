@@ -1,25 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { showGithubOnlyAuth } from "@/lib/flags";
 
 export const config = { matcher: ["/auth/signin"] };
 
 export async function middleware(request: NextRequest) {
-  const githubOnly = await showGithubOnlyAuth();
-  console.log("githubOnly: ", githubOnly);
+  try {
+    const flagRes = await fetch(
+      `${request.nextUrl.origin}/api/flags/check?name=github-only-auth`,
+      {
+        method: "GET",
+      }
+    );
+    const { value: githubOnly } = await flagRes.json();
 
-  //const rootUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}`;
-  // Determine which version to show based on the feature flag
-  const version = githubOnly
-    ? "auth/signin/github-only"
-    : "auth/signin/regular";
-  console.log("version: ", version);
+    const version = githubOnly
+      ? "auth/signin/github-only"
+      : "auth/signin/regular";
+    const url = request.nextUrl.clone();
+    url.pathname = `/${version}`;
 
-  //const nextUrl = new URL(version, rootUrl);
-
-  const url = request.nextUrl.clone();
-  url.pathname = `/${version}`;
-
-  console.log("url: ", url);
-
-  return NextResponse.redirect(url);
+    return NextResponse.redirect(url);
+  } catch (error) {
+    // Fallback to regular signin if there's an error
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/signin/regular";
+    return NextResponse.redirect(url);
+  }
 }
