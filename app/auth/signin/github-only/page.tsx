@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { signIn } from "next-auth/react";
-import { BookOpen } from "lucide-react";
+} from '@/components/ui/card'
+import { signIn } from 'next-auth/react'
+import { BookOpen } from 'lucide-react'
 
 export default function GitHubSignIn() {
   return (
@@ -24,12 +24,12 @@ export default function GitHubSignIn() {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+            onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
           >
             Sign in with GitHub
           </Button>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

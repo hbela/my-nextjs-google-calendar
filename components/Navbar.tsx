@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { BookOpen } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
-import { Role } from "@prisma/client";
+import { BookOpen } from 'lucide-react'
+import { signOut, useSession } from 'next-auth/react'
+import Link from 'next/link'
+import { Button } from './ui/button'
+import { useTheme } from 'next-themes'
+import { Moon, Sun } from 'lucide-react'
+import { Role } from '@prisma/client'
 
 export default function Navbar() {
-  const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
+  const { data: session } = useSession()
+  const { theme, setTheme } = useTheme()
 
   return (
     <nav className="border-b">
@@ -33,7 +33,7 @@ export default function Navbar() {
                 )}
                 <Button
                   variant="outline"
-                  onClick={() => signOut({ callbackUrl: "/" })}
+                  onClick={() => signOut({ callbackUrl: '/' })}
                 >
                   Sign Out
                 </Button>
@@ -55,7 +55,7 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -65,5 +65,5 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
-  );
+  )
 }

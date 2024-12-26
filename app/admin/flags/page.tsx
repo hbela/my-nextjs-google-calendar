@@ -1,60 +1,60 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import { Role } from "@prisma/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { Role } from '@prisma/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function FeatureFlags() {
-  const { data: session } = useSession();
-  const [flags, setFlags] = useState<{ name: string; value: boolean }[]>([]);
-  const [newFlagName, setNewFlagName] = useState("");
+  const { data: session } = useSession()
+  const [flags, setFlags] = useState<{ name: string; value: boolean }[]>([])
+  const [newFlagName, setNewFlagName] = useState('')
 
   useEffect(() => {
     async function fetchFlags() {
-      const res = await fetch("/api/flags");
-      const data = await res.json();
-      setFlags(data);
+      const res = await fetch('/api/flags')
+      const data = await res.json()
+      setFlags(data)
     }
-    fetchFlags();
-  }, []);
+    fetchFlags()
+  }, [])
 
   const toggleFlag = async (name: string) => {
-    const flag = flags.find((f) => f.name === name);
+    const flag = flags.find((f) => f.name === name)
     if (flag) {
-      const res = await fetch("/api/flags", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/flags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, value: !flag.value }),
-      });
-      const updatedFlag = await res.json();
+      })
+      const updatedFlag = await res.json()
       setFlags((prevFlags) =>
         prevFlags.map((f) => (f.name === name ? updatedFlag : f))
-      );
+      )
     }
-  };
+  }
 
   const addFlag = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFlagName.trim()) return;
+    e.preventDefault()
+    if (!newFlagName.trim()) return
 
     try {
-      const res = await fetch("/api/flags", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/flags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newFlagName, value: false }),
-      });
-      const newFlag = await res.json();
-      setFlags((prevFlags) => [...prevFlags, newFlag]);
-      setNewFlagName("");
+      })
+      const newFlag = await res.json()
+      setFlags((prevFlags) => [...prevFlags, newFlag])
+      setNewFlagName('')
     } catch (error) {
-      console.error("Failed to add flag:", error);
+      console.error('Failed to add flag:', error)
     }
-  };
+  }
 
   if (session?.user?.role !== Role.ADMIN) {
-    return <p>You are not authorized to view this page!</p>;
+    return <p>You are not authorized to view this page!</p>
   }
 
   return (
@@ -80,14 +80,14 @@ export default function FeatureFlags() {
           >
             <span className="font-medium">{flag.name}</span>
             <Button
-              variant={flag.value ? "default" : "outline"}
+              variant={flag.value ? 'default' : 'outline'}
               onClick={() => toggleFlag(flag.name)}
             >
-              {flag.value ? "Disable" : "Enable"}
+              {flag.value ? 'Disable' : 'Enable'}
             </Button>
           </li>
         ))}
       </ul>
     </div>
-  );
+  )
 }

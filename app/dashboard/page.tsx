@@ -1,12 +1,12 @@
-import { getServerSession } from "next-auth/next";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/app/api/auth/[...nextauth]/auth.config";
+import { getServerSession } from 'next-auth/next'
+import { redirect } from 'next/navigation'
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth.config'
 
 export default async function Dashboard() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions)
 
   if (!session) {
-    redirect("/auth/signin");
+    redirect('/auth/signin')
   }
 
   return (
@@ -22,5 +22,5 @@ export default async function Dashboard() {
         </ul>
       </div>
     </div>
-  );
+  )
 }

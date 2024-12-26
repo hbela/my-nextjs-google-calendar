@@ -1,17 +1,17 @@
-"use client";
+'use client'
 
 // Move all the existing content from signin/page.tsx here
 // No changes needed to the code, just move it
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { LoginFormData, loginSchema } from "@/lib/schema";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { LoginFormData, loginSchema } from '@/lib/schema'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Card,
   CardContent,
@@ -19,32 +19,32 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card'
 
 export default function SignIn() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter()
+  const [error, setError] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-  });
+  })
 
   const onSubmit = async (data: LoginFormData) => {
-    const result = await signIn("credentials", {
+    const result = await signIn('credentials', {
       redirect: false,
       email: data.email,
       password: data.password,
-    });
+    })
 
     if (result?.error) {
-      setError("Invalid email or password");
+      setError('Invalid email or password')
     } else {
-      router.push("/dashboard");
+      router.push('/dashboard')
     }
-  };
+  }
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -60,7 +60,7 @@ export default function SignIn() {
             <div className="grid w-full items-center gap-4">
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" {...register("email")} />
+                <Input id="email" {...register('email')} />
                 {errors.email && (
                   <p className="text-red-500 text-sm">{errors.email.message}</p>
                 )}
@@ -70,7 +70,7 @@ export default function SignIn() {
                 <Input
                   id="password"
                   type="password"
-                  {...register("password")}
+                  {...register('password')}
                 />
                 {errors.password && (
                   <p className="text-red-500 text-sm">
@@ -89,15 +89,15 @@ export default function SignIn() {
           <Button
             variant="outline"
             className="mr-2"
-            onClick={() => signIn("google")}
+            onClick={() => signIn('google')}
           >
             Sign in with Google
           </Button>
-          <Button variant="outline" onClick={() => signIn("github")}>
+          <Button variant="outline" onClick={() => signIn('github')}>
             Sign in with GitHub
           </Button>
         </CardFooter>
       </Card>
     </div>
-  );
+  )
 }
