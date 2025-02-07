@@ -35,6 +35,7 @@ export default function CalendarEvents() {
   const fetchEvents = useCallback(async () => {
     if (session?.accessToken) {
       try {
+        console.log('Session exists, access token available')
         const now = new Date()
         const calendarEvents = await listCalendarEvents(
           session.accessToken,
@@ -55,6 +56,10 @@ export default function CalendarEvents() {
       } finally {
         setLoading(false)
       }
+    } else {
+      console.error('No access token available in session:', session)
+      setError('Authentication token not available')
+      setLoading(false)
     }
   }, [session])
 

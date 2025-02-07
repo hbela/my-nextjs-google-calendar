@@ -25,17 +25,21 @@ export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
       orderBy: 'startTime',
     })
 
+    console.log('Using access token:', accessToken?.substring(0, 10) + '...')
+
     const response = await fetch(
       `${CALENDAR_API_URL}/calendars/primary/events?${params}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
         },
       }
     )
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null)
+      console.error('Full error response:', errorData)
       throw new Error(
         `Failed to fetch calendar events: ${response.status} ${response.statusText}${
           errorData ? ' - ' + JSON.stringify(errorData) : ''
