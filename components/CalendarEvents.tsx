@@ -33,41 +33,51 @@ export default function CalendarEvents() {
   const [creating, setCreating] = useState(false)
 
   const fetchEvents = useCallback(async () => {
-    if (session?.accessToken) {
-      try {
-        console.log('[Client] Fetching calendar events:', {
-          hasSession: !!session,
-          hasAccessToken: !!session.accessToken,
-        })
-        const now = new Date()
-        const calendarEvents = await listCalendarEvents(
-          session.accessToken,
-          now
-        )
-        setEvents(calendarEvents || [])
-        setError(null)
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error occurred'
-        console.error('[Client] Calendar fetch error:', {
-          error: errorMessage,
-        })
-        setError(errorMessage)
-        Sentry.captureException(err, {
-          tags: {
-            component: 'CalendarEvents',
-            action: 'fetchEvents',
-          },
-        })
-      } finally {
-        setLoading(false)
-      }
-    } else {
-      console.error('[Client] No access token:', {
-        hasSession: !!session,
-        sessionData: session,
+    console.log('[Client] Session state:', {
+      hasSession: !!session,
+      sessionKeys: session ? Object.keys(session) : [],
+      userInfo: session?.user,
+      tokenType: session?.accessToken
+        ? typeof session.accessToken
+        : 'undefined',
+    })
+
+    if (!session) {
+      setError('No session available')
+      setLoading(false)
+      return
+    }
+
+    if (!session.accessToken) {
+      setError('No access token available')
+      setLoading(false)
+      return
+    }
+
+    try {
+      console.log('[Client] Using token:', {
+        tokenStart: session.accessToken.substring(0, 20) + '...',
+        tokenLength: session.accessToken.length,
       })
-      setError('Authentication token not available')
+
+      const now = new Date()
+      const calendarEvents = await listCalendarEvents(session.accessToken, now)
+      setEvents(calendarEvents || [])
+      setError(null)
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Unknown error occurred'
+      console.error('[Client] Calendar fetch error:', {
+        error: errorMessage,
+      })
+      setError(errorMessage)
+      Sentry.captureException(err, {
+        tags: {
+          component: 'CalendarEvents',
+          action: 'fetchEvents',
+        },
+      })
+    } finally {
       setLoading(false)
     }
   }, [session])

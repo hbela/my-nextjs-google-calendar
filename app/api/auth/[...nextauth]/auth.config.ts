@@ -146,10 +146,25 @@ export const authOptions: AuthOptions = {
           hasAccessToken: !!account.access_token,
           hasRefreshToken: !!account.refresh_token,
           expiresAt: account.expires_at,
+          tokenType: account.token_type,
+          scope: account.scope,
         })
+
+        // Store the tokens
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
         token.accessTokenExpires = account.expires_at
+        token.tokenType = account.token_type
+      }
+
+      // Check token expiration
+      const now = Math.floor(Date.now() / 1000)
+      if (token.accessTokenExpires && now > token.accessTokenExpires) {
+        console.log('[Server] Token expired, needs refresh')
+        return {
+          ...token,
+          error: 'TokenExpired',
+        }
       }
 
       if (user) {
@@ -158,12 +173,12 @@ export const authOptions: AuthOptions = {
         })
         token.role = dbUser?.role || 'USER'
       } else if (token.email && !token.role) {
-        // Check role on subsequent requests
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
         })
         token.role = dbUser?.role || 'USER'
       }
+
       return token
     },
 
@@ -174,7 +189,13 @@ export const authOptions: AuthOptions = {
         console.log('[Server] Session updated:', {
           hasAccessToken: !!session.accessToken,
           userEmail: session.user.email,
+          tokenType: token.tokenType,
+          error: token.error,
         })
+
+        if (token.error) {
+          throw new Error('Token expired, please sign in again')
+        }
       }
       return session
     },

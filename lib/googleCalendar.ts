@@ -16,6 +16,14 @@ const CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3'
 // }
 
 export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
+  if (!accessToken) {
+    throw new Error('No access token provided')
+  }
+
+  if (accessToken.length < 50) {
+    throw new Error('Access token appears invalid (too short)')
+  }
+
   try {
     const params = new URLSearchParams({
       calendarId: 'primary',
@@ -28,7 +36,8 @@ export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
     console.log('[Server] Calendar API Request:', {
       timeMin: timeMin?.toISOString(),
       hasAccessToken: !!accessToken,
-      tokenPrefix: accessToken?.substring(0, 10),
+      tokenLength: accessToken.length,
+      tokenStart: accessToken.substring(0, 20) + '...',
     })
 
     const response = await fetch(
@@ -41,28 +50,40 @@ export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
       }
     )
 
+    const responseText = await response.text()
+    let errorData = null
+    let data = null
+
+    try {
+      data = JSON.parse(responseText)
+    } catch (e) {
+      console.error('[Server] Failed to parse response:', responseText)
+      throw new Error('Failed to parse API response')
+    }
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null)
       console.error('[Server] Calendar API Error:', {
         status: response.status,
         statusText: response.statusText,
-        errorData,
+        data,
+        headers: Object.fromEntries(response.headers.entries()),
       })
       throw new Error(
         `Failed to fetch calendar events: ${response.status} ${response.statusText}${
-          errorData ? ' - ' + JSON.stringify(errorData) : ''
+          data ? ' - ' + JSON.stringify(data) : ''
         }`
       )
     }
 
-    const data = await response.json()
     console.log('[Server] Calendar API Success:', {
       eventCount: data.items?.length || 0,
+      nextPageToken: !!data.nextPageToken,
     })
     return data.items
   } catch (error) {
     console.error('[Server] Calendar API Exception:', {
       error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     })
     Sentry.captureException(error, {
       tags: {
