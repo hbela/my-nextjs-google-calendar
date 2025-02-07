@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import * as Sentry from '@sentry/nextjs'
 import { listCalendarEvents, createCalendarEvent } from '@/lib/googleCalendar'
@@ -31,6 +31,7 @@ export default function CalendarEvents() {
   const [error, setError] = useState<string | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [creating, setCreating] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
 
   const fetchEvents = useCallback(async () => {
     console.log('[Client] Session state:', {
@@ -111,7 +112,7 @@ export default function CalendarEvents() {
       })
       await fetchEvents() // Refresh the events list
       setShowCreateForm(false)
-      e.currentTarget.reset()
+      formRef.current?.reset()
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to create event'
@@ -174,7 +175,11 @@ export default function CalendarEvents() {
       </CardHeader>
       <CardContent>
         {showCreateForm && (
-          <form onSubmit={handleCreateEvent} className="mb-6 space-y-4">
+          <form
+            ref={formRef}
+            onSubmit={handleCreateEvent}
+            className="mb-6 space-y-4"
+          >
             <div className="space-y-2">
               <Input
                 name="summary"
