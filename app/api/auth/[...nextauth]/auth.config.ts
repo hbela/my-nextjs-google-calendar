@@ -1,10 +1,7 @@
 import { AuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
-import GithubProvider from 'next-auth/providers/github'
-import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import prisma from '@/prisma/db'
-import bcrypt from 'bcryptjs'
 import { Role } from '@prisma/client'
 
 const ADMIN_EMAILS = ['hajzerbela@gmail.com'] // Add all admin emails here
@@ -16,68 +13,21 @@ export const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope:
+            'openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
       profile(profile) {
         console.log('Profile Google: ', profile)
         return {
           ...profile,
           id: profile.sub,
           role: ADMIN_EMAILS.includes(profile.email) ? Role.ADMIN : Role.USER,
-        }
-      },
-    }),
-
-    GithubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-      profile(profile) {
-        console.log('Profile Github: ', profile)
-        return {
-          ...profile,
-          role: ADMIN_EMAILS.includes(profile.email) ? Role.ADMIN : Role.USER,
-        }
-      },
-    }),
-
-    CredentialsProvider({
-      name: 'Credentials',
-
-      credentials: {
-        email: { label: 'Email', type: 'text' },
-
-        password: { label: 'Password', type: 'password' },
-      },
-
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        })
-
-        if (!user || !user.password) {
-          return null
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-
-          user.password
-        )
-
-        if (!isPasswordValid) {
-          return null
-        }
-
-        return {
-          id: user.id,
-
-          email: user.email,
-
-          name: user.name,
         }
       },
     }),
@@ -93,29 +43,88 @@ export const authOptions: AuthOptions = {
 
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === 'github' || account?.provider === 'google') {
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email! },
+      // Only allow Google authentication
+      if (account?.provider !== 'google') {
+        return false
+      }
+
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email! },
+      })
+
+      if (!existingUser) {
+        // Create new user with appropriate role
+        const newUser = await prisma.user.create({
+          data: {
+            email: user.email!,
+            name: user.name,
+            image: user.image,
+            role: ADMIN_EMAILS.includes(user.email!) ? 'ADMIN' : 'USER',
+          },
         })
 
-        if (!existingUser) {
-          // Create new user with appropriate role
-          await prisma.user.create({
+        // Create the Google account link for the new user
+        await prisma.account.create({
+          data: {
+            userId: newUser.id,
+            type: account.type,
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            access_token: account.access_token,
+            token_type: account.token_type,
+            scope: account.scope,
+            id_token: account.id_token,
+            refresh_token: account.refresh_token,
+            expires_at: account.expires_at,
+          },
+        })
+      } else {
+        // Update existing user's information
+        await prisma.user.update({
+          where: { email: user.email! },
+          data: {
+            name: user.name,
+            image: user.image,
+            role: ADMIN_EMAILS.includes(user.email!) ? 'ADMIN' : 'USER',
+          },
+        })
+
+        // Check if Google account is already linked
+        const existingAccount = await prisma.account.findFirst({
+          where: {
+            userId: existingUser.id,
+            provider: 'google',
+          },
+        })
+
+        // If no Google account is linked or we need to update tokens, create/update it
+        if (!existingAccount) {
+          await prisma.account.create({
             data: {
-              email: user.email!,
-              name: user.name,
-              image: user.image,
-              role: ADMIN_EMAILS.includes(user.email!) ? 'ADMIN' : 'USER',
+              userId: existingUser.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              access_token: account.access_token,
+              token_type: account.token_type,
+              scope: account.scope,
+              id_token: account.id_token,
+              refresh_token: account.refresh_token,
+              expires_at: account.expires_at,
             },
           })
-        } else if (
-          ADMIN_EMAILS.includes(user.email!) &&
-          existingUser.role !== 'ADMIN'
-        ) {
-          // Update existing user to admin if they should be admin
-          await prisma.user.update({
-            where: { email: user.email! },
-            data: { role: 'ADMIN' },
+        } else {
+          // Update the tokens
+          await prisma.account.update({
+            where: { id: existingAccount.id },
+            data: {
+              access_token: account.access_token,
+              refresh_token: account.refresh_token,
+              expires_at: account.expires_at,
+              scope: account.scope,
+              token_type: account.token_type,
+              id_token: account.id_token,
+            },
           })
         }
       }
@@ -131,7 +140,13 @@ export const authOptions: AuthOptions = {
       return `${baseUrl}/dashboard`
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      if (account) {
+        token.accessToken = account.access_token
+        token.refreshToken = account.refresh_token
+        token.accessTokenExpires = account.expires_at
+      }
+
       if (user) {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email! },
@@ -150,6 +165,7 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (session?.user) {
         session.user.role = token.role as Role
+        session.accessToken = token.accessToken
       }
       console.log('Session: ', session)
       return session

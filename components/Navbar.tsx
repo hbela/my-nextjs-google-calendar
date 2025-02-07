@@ -43,13 +43,6 @@ export default function Navbar() {
                 <Button variant="outline" asChild>
                   <Link href="/auth/signin">Sign In</Link>
                 </Button>
-                <Button
-                  variant="default"
-                  asChild
-                  className="hidden sm:inline-flex"
-                >
-                  <Link href="/auth/register">Register</Link>
-                </Button>
               </div>
             )}
             <Button
