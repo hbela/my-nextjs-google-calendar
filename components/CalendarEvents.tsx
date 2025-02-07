@@ -34,7 +34,11 @@ export default function CalendarEvents() {
   const fetchEvents = useCallback(async () => {
     if (session?.accessToken) {
       try {
-        const calendarEvents = await listCalendarEvents(session.accessToken)
+        const now = new Date()
+        const calendarEvents = await listCalendarEvents(
+          session.accessToken,
+          now
+        )
         setEvents(calendarEvents || [])
       } catch (err) {
         setError('Failed to fetch calendar events')
