@@ -25,7 +25,11 @@ export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
       orderBy: 'startTime',
     })
 
-    console.log('Using access token:', accessToken?.substring(0, 10) + '...')
+    console.log('[Server] Calendar API Request:', {
+      timeMin: timeMin?.toISOString(),
+      hasAccessToken: !!accessToken,
+      tokenPrefix: accessToken?.substring(0, 10),
+    })
 
     const response = await fetch(
       `${CALENDAR_API_URL}/calendars/primary/events?${params}`,
@@ -39,7 +43,11 @@ export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null)
-      console.error('Full error response:', errorData)
+      console.error('[Server] Calendar API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+      })
       throw new Error(
         `Failed to fetch calendar events: ${response.status} ${response.statusText}${
           errorData ? ' - ' + JSON.stringify(errorData) : ''
@@ -48,8 +56,14 @@ export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
     }
 
     const data = await response.json()
+    console.log('[Server] Calendar API Success:', {
+      eventCount: data.items?.length || 0,
+    })
     return data.items
   } catch (error) {
+    console.error('[Server] Calendar API Exception:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
     Sentry.captureException(error, {
       tags: {
         component: 'googleCalendar',

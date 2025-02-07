@@ -35,7 +35,10 @@ export default function CalendarEvents() {
   const fetchEvents = useCallback(async () => {
     if (session?.accessToken) {
       try {
-        console.log('Session exists, access token available')
+        console.log('[Client] Fetching calendar events:', {
+          hasSession: !!session,
+          hasAccessToken: !!session.accessToken,
+        })
         const now = new Date()
         const calendarEvents = await listCalendarEvents(
           session.accessToken,
@@ -46,6 +49,9 @@ export default function CalendarEvents() {
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error occurred'
+        console.error('[Client] Calendar fetch error:', {
+          error: errorMessage,
+        })
         setError(errorMessage)
         Sentry.captureException(err, {
           tags: {
@@ -57,7 +63,10 @@ export default function CalendarEvents() {
         setLoading(false)
       }
     } else {
-      console.error('No access token available in session:', session)
+      console.error('[Client] No access token:', {
+        hasSession: !!session,
+        sessionData: session,
+      })
       setError('Authentication token not available')
       setLoading(false)
     }

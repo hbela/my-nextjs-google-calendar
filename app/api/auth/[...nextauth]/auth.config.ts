@@ -142,6 +142,11 @@ export const authOptions: AuthOptions = {
 
     async jwt({ token, user, account }) {
       if (account) {
+        console.log('[Server] Setting JWT tokens:', {
+          hasAccessToken: !!account.access_token,
+          hasRefreshToken: !!account.refresh_token,
+          expiresAt: account.expires_at,
+        })
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
         token.accessTokenExpires = account.expires_at
@@ -166,6 +171,10 @@ export const authOptions: AuthOptions = {
       if (session?.user) {
         session.user.role = token.role as Role
         session.accessToken = token.accessToken as string
+        console.log('[Server] Session updated:', {
+          hasAccessToken: !!session.accessToken,
+          userEmail: session.user.email,
+        })
       }
       return session
     },
