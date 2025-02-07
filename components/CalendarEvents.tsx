@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { listCalendarEvents } from '@/lib/googleCalendar'
+import { listCalendarEvents, createCalendarEvent } from '@/lib/googleCalendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Calendar } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Calendar, Plus, X } from 'lucide-react'
 
 interface CalendarEvent {
   id: string
@@ -25,24 +28,60 @@ export default function CalendarEvents() {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [creating, setCreating] = useState(false)
 
-  useEffect(() => {
-    async function fetchEvents() {
-      if (session?.accessToken) {
-        try {
-          const calendarEvents = await listCalendarEvents(session.accessToken)
-          setEvents(calendarEvents || [])
-        } catch (err) {
-          setError('Failed to fetch calendar events')
-          console.error('Error fetching calendar events:', err)
-        } finally {
-          setLoading(false)
-        }
+  const fetchEvents = useCallback(async () => {
+    if (session?.accessToken) {
+      try {
+        const calendarEvents = await listCalendarEvents(session.accessToken)
+        setEvents(calendarEvents || [])
+      } catch (err) {
+        setError('Failed to fetch calendar events')
+        console.error('Error fetching calendar events:', err)
+      } finally {
+        setLoading(false)
       }
     }
-
-    fetchEvents()
   }, [session])
+
+  useEffect(() => {
+    fetchEvents()
+  }, [fetchEvents])
+
+  async function handleCreateEvent(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!session?.accessToken) return
+
+    const formData = new FormData(e.currentTarget)
+    const summary = formData.get('summary') as string
+    const description = formData.get('description') as string
+    const startDate = formData.get('startDate') as string
+    const startTime = formData.get('startTime') as string
+    const endDate = formData.get('endDate') as string
+    const endTime = formData.get('endTime') as string
+
+    const start = new Date(`${startDate}T${startTime}`)
+    const end = new Date(`${endDate}T${endTime}`)
+
+    try {
+      setCreating(true)
+      await createCalendarEvent(session.accessToken, {
+        summary,
+        description,
+        start,
+        end,
+      })
+      await fetchEvents() // Refresh the events list
+      setShowCreateForm(false)
+      e.currentTarget.reset()
+    } catch (err) {
+      console.error('Error creating event:', err)
+      setError('Failed to create event')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -72,13 +111,74 @@ export default function CalendarEvents() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
           Upcoming Events
         </CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCreateForm(!showCreateForm)}
+        >
+          {showCreateForm ? (
+            <X className="h-4 w-4" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
+        </Button>
       </CardHeader>
       <CardContent>
+        {showCreateForm && (
+          <form onSubmit={handleCreateEvent} className="mb-6 space-y-4">
+            <div className="space-y-2">
+              <Input
+                name="summary"
+                placeholder="Event title"
+                required
+                disabled={creating}
+              />
+              <Textarea
+                name="description"
+                placeholder="Event description"
+                disabled={creating}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Input
+                    type="date"
+                    name="startDate"
+                    required
+                    disabled={creating}
+                  />
+                  <Input
+                    type="time"
+                    name="startTime"
+                    required
+                    disabled={creating}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    type="date"
+                    name="endDate"
+                    required
+                    disabled={creating}
+                  />
+                  <Input
+                    type="time"
+                    name="endTime"
+                    required
+                    disabled={creating}
+                  />
+                </div>
+              </div>
+            </div>
+            <Button type="submit" disabled={creating}>
+              {creating ? 'Creating...' : 'Create Event'}
+            </Button>
+          </form>
+        )}
         {events.length === 0 ? (
           <p className="text-muted-foreground">No upcoming events</p>
         ) : (

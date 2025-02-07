@@ -1,30 +1,44 @@
-import { google } from 'googleapis'
-import { getSession } from 'next-auth/react'
+//import { google } from 'googleapis'
+//import { getSession } from 'next-auth/react'
 
-export async function getGoogleCalendarClient(accessToken: string) {
-  const auth = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET
-  )
+const CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3'
 
-  auth.setCredentials({ access_token: accessToken })
+// export async function getGoogleCalendarClient(accessToken: string) {
+//   const auth = new google.auth.OAuth2(
+//     process.env.GOOGLE_CLIENT_ID,
+//     process.env.GOOGLE_CLIENT_SECRET
+//   )
 
-  return google.calendar({ version: 'v3', auth })
-}
+//   auth.setCredentials({ access_token: accessToken })
+
+//   return google.calendar({ version: 'v3', auth })
+// }
 
 export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
   try {
-    const calendar = await getGoogleCalendarClient(accessToken)
-
-    const response = await calendar.events.list({
+    const params = new URLSearchParams({
       calendarId: 'primary',
       timeMin: timeMin?.toISOString() || new Date().toISOString(),
-      maxResults: 10,
-      singleEvents: true,
+      maxResults: '10',
+      singleEvents: 'true',
       orderBy: 'startTime',
     })
 
-    return response.data.items
+    const response = await fetch(
+      `${CALENDAR_API_URL}/calendars/primary/events?${params}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch calendar events')
+    }
+
+    const data = await response.json()
+    return data.items
   } catch (error) {
     console.error('Error fetching calendar events:', error)
     throw error
@@ -46,8 +60,6 @@ export async function createCalendarEvent(
   }
 ) {
   try {
-    const calendar = await getGoogleCalendarClient(accessToken)
-
     const event = {
       summary,
       description,
@@ -61,12 +73,23 @@ export async function createCalendarEvent(
       },
     }
 
-    const response = await calendar.events.insert({
-      calendarId: 'primary',
-      requestBody: event,
-    })
+    const response = await fetch(
+      `${CALENDAR_API_URL}/calendars/primary/events`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      }
+    )
 
-    return response.data
+    if (!response.ok) {
+      throw new Error('Failed to create calendar event')
+    }
+
+    return response.json()
   } catch (error) {
     console.error('Error creating calendar event:', error)
     throw error
