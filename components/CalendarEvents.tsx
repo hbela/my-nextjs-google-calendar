@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import * as Sentry from '@sentry/nextjs'
 import { listCalendarEvents, createCalendarEvent } from '@/lib/googleCalendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -40,11 +41,17 @@ export default function CalendarEvents() {
           now
         )
         setEvents(calendarEvents || [])
+        setError(null)
       } catch (err) {
-        setError('Failed to fetch calendar events')
-        console.error('Error fetching calendar events:', err)
-        setLoading(false)
-        alert('Failed to fetch calendar events' + err)
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error occurred'
+        setError(errorMessage)
+        Sentry.captureException(err, {
+          tags: {
+            component: 'CalendarEvents',
+            action: 'fetchEvents',
+          },
+        })
       } finally {
         setLoading(false)
       }
@@ -82,8 +89,15 @@ export default function CalendarEvents() {
       setShowCreateForm(false)
       e.currentTarget.reset()
     } catch (err) {
-      console.error('Error creating event:', err)
-      setError('Failed to create event')
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to create event'
+      setError(errorMessage)
+      Sentry.captureException(err, {
+        tags: {
+          component: 'CalendarEvents',
+          action: 'createEvent',
+        },
+      })
     } finally {
       setCreating(false)
     }

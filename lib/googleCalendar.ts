@@ -1,5 +1,6 @@
 //import { google } from 'googleapis'
 //import { getSession } from 'next-auth/react'
+import * as Sentry from '@sentry/nextjs'
 
 const CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3'
 
@@ -34,13 +35,23 @@ export async function listCalendarEvents(accessToken: string, timeMin?: Date) {
     )
 
     if (!response.ok) {
-      throw new Error('Failed to fetch calendar events')
+      const errorData = await response.json().catch(() => null)
+      throw new Error(
+        `Failed to fetch calendar events: ${response.status} ${response.statusText}${
+          errorData ? ' - ' + JSON.stringify(errorData) : ''
+        }`
+      )
     }
 
     const data = await response.json()
     return data.items
   } catch (error) {
-    console.error('Error fetching calendar events:', error)
+    Sentry.captureException(error, {
+      tags: {
+        component: 'googleCalendar',
+        action: 'listEvents',
+      },
+    })
     throw error
   }
 }
@@ -86,12 +97,22 @@ export async function createCalendarEvent(
     )
 
     if (!response.ok) {
-      throw new Error('Failed to create calendar event')
+      const errorData = await response.json().catch(() => null)
+      throw new Error(
+        `Failed to create calendar event: ${response.status} ${response.statusText}${
+          errorData ? ' - ' + JSON.stringify(errorData) : ''
+        }`
+      )
     }
 
     return response.json()
   } catch (error) {
-    console.error('Error creating calendar event:', error)
+    Sentry.captureException(error, {
+      tags: {
+        component: 'googleCalendar',
+        action: 'createEvent',
+      },
+    })
     throw error
   }
 }
