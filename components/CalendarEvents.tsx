@@ -43,6 +43,8 @@ export default function CalendarEvents() {
       } catch (err) {
         setError('Failed to fetch calendar events')
         console.error('Error fetching calendar events:', err)
+        setLoading(false)
+        alert('Failed to fetch calendar events' + err)
       } finally {
         setLoading(false)
       }
